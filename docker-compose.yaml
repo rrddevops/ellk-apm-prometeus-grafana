@@ -1,0 +1,74 @@
+services:  
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=es-docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - http.cors.enabled=true
+      - http.cors.allow-origin="*"
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks: 
+        - observability
+   
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.13.0
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    networks: 
+        - observability
+
+  metricbeat:
+    build: ./beats/metric
+    container_name: metricbeat
+    user: root
+    volumes:      
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: on-failure
+    networks: 
+      - observability
+
+  heartbeat:
+    build: ./beats/heartbeat
+    container_name: heartbeat
+    # config copied into image at build time (no bind-mount to avoid Windows permission issues)
+    environment: 
+    - setup.kibana.host=kibana:5601
+    networks: 
+      - observability
+
+  prometheus-app:
+    build: ./prometheus-app
+    container_name: prometheus-app
+    ports:
+      - "8001:8000"
+    networks:
+      - observability
+
+  apm:
+    build: ./apm
+    container_name: apm
+    ports:
+      - "8200:8200"
+    restart: on-failure
+    networks: 
+      - observability
+
+networks:
+  observability:
+    external: true
