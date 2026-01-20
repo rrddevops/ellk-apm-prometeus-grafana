@@ -15,6 +15,9 @@ echo "[start_services] Subindo serviços do compose da pasta 'app' (db, app, ngi
 echo "[start_services] Subindo 'prometheus-app' (do compose raiz)..."
 docker compose up -d --build prometheus-app
 
+echo "[start_services] Subindo 'elk project'..."
+docker compose up -d --build 
+
 echo "[start_services] Status dos containers relevantes:"
 docker ps --filter "name=app" --filter "name=prometheus-app" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
